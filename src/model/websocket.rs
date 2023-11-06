@@ -168,6 +168,7 @@ pub struct Level2 {
     pub sequence_end: i64,
     pub symbol: String,
     pub changes: Level2Changes,
+    pub time: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
