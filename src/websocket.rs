@@ -357,14 +357,7 @@ impl Subscribe {
             WSTopic::Ticker(ref symbols) => format!("/market/ticker:{}", symbols.join(",")),
             WSTopic::AllTicker => String::from("/market/ticker:all"),
             WSTopic::Snapshot(ref symbol) => format!("/market/snapshot:{}", symbol),
-            WSTopic::IndexPrice(ref symbols) => format!("/indicator/index:{}", symbols.join(",")),
-            WSTopic::MarketPrice(ref symbols) => {
-                format!("/indicator/markPrice:{}", symbols.join(","))
-            }
             WSTopic::OrderBook(ref symbols) => format!("/market/level2:{}", symbols.join(",")),
-            WSTopic::OrderBookChange(ref symbols) => {
-                format!("/margin/fundingBook:{}", symbols.join(","))
-            }
             WSTopic::OrderBookDepth5(ref symbols) => {
                 format!("/spotMarket/level2Depth5:{}", symbols.join(","))
             }
@@ -372,19 +365,26 @@ impl Subscribe {
                 format!("/spotMarket/level2Depth50:{}", symbols.join(","))
             }
             WSTopic::Match(ref symbols) => format!("/market/match:{}", symbols.join(",")),
-            WSTopic::Level3Public(ref symbols) => format!("/market/level3:{}", symbols.join(",")),
             WSTopic::FullMatch(ref symbols) => format!("/spotMarket/level3:{}", symbols.join(",")),
+            WSTopic::Level3Public(ref symbols) => format!("/market/level3:{}", symbols.join(",")),
             WSTopic::Level3Private(ref symbols) => {
+                private_channel = true;
+                format!("/market/level3:{}", symbols.join(","))
+            }
+            WSTopic::IndexPrice(ref symbols) => format!("/indicator/index:{}", symbols.join(",")),
+            WSTopic::MarketPrice(ref symbols) => {
+                format!("/indicator/markPrice:{}", symbols.join(","))
+            }
+            WSTopic::OrderBookChange(ref symbols) => {
+                format!("/margin/fundingBook:{}", symbols.join(","))
+            }
+            WSTopic::StopOrder(ref symbols) => {
                 private_channel = true;
                 format!("/market/level3:{}", symbols.join(","))
             }
             WSTopic::Balances => {
                 private_channel = true;
                 String::from("/account/balance")
-            }
-            WSTopic::StopOrder(ref symbols) => {
-                private_channel = true;
-                format!("/market/level3:{}", symbols.join(","))
             }
             WSTopic::DebtRatio => {
                 private_channel = true;

@@ -1,7 +1,11 @@
 # kucoin_api
-[![](https://img.shields.io/crates/v/kucoin-api)](https://crates.io/crates/kucoin-api)
-[![](https://img.shields.io/docsrs/kucoin_api)](https://docs.rs/kucoin_api)
-[![](https://img.shields.io/github/license/kanekoshoyu/kucoin_api)](https://github.com/kanekoshoyu/kucoin_api/blob/master/LICENSE)  
+[![crate](https://img.shields.io/crates/v/kucoin-api)](https://crates.io/crates/kucoin-api)
+[![docs](https://img.shields.io/docsrs/kucoin_api)](https://docs.rs/kucoin_api)
+[![license](https://img.shields.io/github/license/kanekoshoyu/kucoin_api)](https://github.com/kanekoshoyu/kucoin_api/blob/master/LICENSE)
+[![ci](https://img.shields.io/github/actions/workflow/status/kanekoshoyu/kucoin_api/rust.yml)](https://github.com/kanekoshoyu/kucoin_api/actions)
+[![issues](https://img.shields.io/github/issues/kanekoshoyu/kucoin_api)](https://github.com/kanekoshoyu/kucoin_api/issues)
+[![discussions](https://img.shields.io/github/discussions/kanekoshoyu/kucoin_api)](https://github.com/kanekoshoyu/kucoin_api/discussions)
+[![discord](https://img.shields.io/discord/1153997271294283827)](https://discord.gg/q3j5MYdwnm)   
 kucoin_api is an API wrapper for the [Kucoin Cryptocurrency Exchange](https://www.kucoin.com/). This is a derived project from Eric Abrahams's [kucoin_rs](https://github.com/escwdev/kucoin_rs).
 
 Trading cryptocurrencies is high risk and there are no guarentees towards the stability or effectiveness
