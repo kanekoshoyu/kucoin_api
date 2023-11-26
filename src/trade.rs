@@ -10,6 +10,23 @@ use super::model::{APIData, APIDatum, Method, Pagination};
 use super::utils::format_query;
 
 impl Kucoin {
+    /// Places a limit order in HF mode. Takes required inputs directly and a Some<OrderOptionals> type, or None for
+    /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/place-hf-order
+    pub async fn post_limit_order_hf(
+        &self,
+        client_oid: &str,
+        symbol: &str,
+        side: &str,
+        price: &str,
+        size: &str,
+        optionals: Option<OrderOptionals<'_>>,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
+        let endpoint = String::from("/api/v1/hf/orders");
+        self.post_limit_order_raw(&endpoint, client_oid, symbol, side, price, size, optionals)
+            .await
+    }
+
     /// Places a limit order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
     /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
     pub async fn post_limit_order(
@@ -24,106 +41,6 @@ impl Kucoin {
         let endpoint = String::from("/api/v1/orders");
         self.post_limit_order_raw(&endpoint, client_oid, symbol, side, price, size, optionals)
             .await
-    }
-
-    /// Places a market order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
-    /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
-    ///
-    /// Note that size is the amount in the base currency and funds is the amount in quote currency. Users
-    /// should only use one or the other the order will fail. One of the two is a required parameter.
-    pub async fn post_market_order(
-        &self,
-        client_oid: &str,
-        symbol: &str,
-        side: &str,
-        size: Option<f32>,
-        funds: Option<f32>,
-        optionals: Option<OrderOptionals<'_>>,
-    ) -> Result<APIDatum<OrderResp>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        self.post_market_order_raw(endpoint, client_oid, symbol, side, size, funds, optionals)
-            .await
-    }
-
-    /// Cancels an order based on the provided order id (required).
-    pub async fn cancel_order(&self, order_id: &str) -> Result<APIDatum<CancelResp>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        self.cancel_order_raw(endpoint, order_id).await
-    }
-
-    /// Cancels an order based on the provided order id (required).
-    pub async fn cancel_order_by_client_oid(
-        &self,
-        client_oid: &str,
-    ) -> Result<APIDatum<CancelByClientOidResp>, APIError> {
-        let endpoint = String::from("/api/v1/orders/client-order");
-        self.cancel_order_by_client_oid_raw(endpoint, client_oid)
-            .await
-    }
-
-    // Cancels all orders of a given symbol (optional) or trade type (optional).
-    pub async fn cancel_all_orders(
-        &self,
-        symbol: Option<&str>,
-        trade_type: Option<&str>,
-    ) -> Result<APIDatum<CancelResp>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        self.cancel_all_orders_raw(endpoint, symbol, trade_type)
-            .await
-    }
-
-    // Consider list orders
-    pub async fn get_orders(
-        &self,
-        optionals: Option<OrderInfoOptionals<'_>>,
-    ) -> Result<APIDatum<Pagination<OrderInfo>>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        self.get_orders_raw(endpoint, optionals).await
-    }
-
-    pub async fn get_v1_historical_orders(
-        &self,
-        symbol: Option<&str>,
-        start_at: Option<i64>,
-        end_at: Option<i64>,
-        side: Option<&str>,
-        current_page: Option<i32>,
-        page_size: Option<i32>,
-    ) -> Result<APIDatum<Pagination<HistoricalOrder>>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        self.get_v1_historical_orders_raw(
-            endpoint,
-            symbol,
-            start_at,
-            end_at,
-            side,
-            current_page,
-            page_size,
-        )
-        .await
-    }
-
-    pub async fn get_recent_orders(&self) -> Result<APIData<OrderInfo>, APIError> {
-        let endpoint = String::from("/api/v1/limit/orders");
-        self.get_recent_orders_raw(endpoint).await
-    }
-
-    pub async fn get_order(&self, order_id: &str) -> Result<APIDatum<OrderInfo>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
-        self.get_order_raw(endpoint, order_id).await
-    }
-
-    pub async fn get_fills(
-        &self,
-        optionals: Option<FillsOptionals<'_>>,
-    ) -> Result<APIDatum<Pagination<FillsInfo>>, APIError> {
-        let endpoint = String::from("/api/v1/fills");
-        self.get_fills_raw(endpoint, optionals).await
-    }
-
-    pub async fn get_recent_fills(&self) -> Result<APIData<FillsInfo>, APIError> {
-        let endpoint = String::from("/api/v1/limit/fills");
-        self.get_recent_fills_raw(endpoint).await
     }
 
     /// Places a limit order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
@@ -158,6 +75,45 @@ impl Kucoin {
             .json()
             .await?;
         Ok(resp)
+    }
+
+    /// Places a market order in HF mode. Takes required inputs directly and a Some<OrderOptionals> type, or None for
+    /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
+    ///
+    /// Note that size is the amount in the base currency and funds is the amount in quote currency. Users
+    /// should only use one or the other the order will fail. One of the two is a required parameter.
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/place-hf-order
+    pub async fn post_market_order_hf(
+        &self,
+        client_oid: &str,
+        symbol: &str,
+        side: &str,
+        size: Option<f32>,
+        funds: Option<f32>,
+        optionals: Option<OrderOptionals<'_>>,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
+        let endpoint = String::from("/api/v1/hf/orders");
+        self.post_market_order_raw(endpoint, client_oid, symbol, side, size, funds, optionals)
+            .await
+    }
+
+    /// Places a market order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
+    /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
+    ///
+    /// Note that size is the amount in the base currency and funds is the amount in quote currency. Users
+    /// should only use one or the other the order will fail. One of the two is a required parameter.
+    pub async fn post_market_order(
+        &self,
+        client_oid: &str,
+        symbol: &str,
+        side: &str,
+        size: Option<f32>,
+        funds: Option<f32>,
+        optionals: Option<OrderOptionals<'_>>,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.post_market_order_raw(endpoint, client_oid, symbol, side, size, funds, optionals)
+            .await
     }
 
     /// Places a market order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
@@ -202,6 +158,19 @@ impl Kucoin {
         Ok(resp)
     }
 
+    /// Cancels an order in HF mode based on the provided order id (required).
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/cancel-hf-order-by-orderid
+    pub async fn cancel_order_hf(&self, order_id: &str) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/hf/orders");
+        self.cancel_order_raw(endpoint, order_id).await
+    }
+
+    /// Cancels an order based on the provided order id (required).
+    pub async fn cancel_order(&self, order_id: &str) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.cancel_order_raw(endpoint, order_id).await
+    }
+
     /// Cancels an order based on the provided order id (required).
     async fn cancel_order_raw(
         &self,
@@ -217,6 +186,27 @@ impl Kucoin {
         Ok(resp)
     }
 
+    /// Cancels an order in HF mode based on the provided order id (required).
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/cancel-hf-order-by-clientoid
+    pub async fn cancel_order_by_client_oid_hf(
+        &self,
+        client_oid: &str,
+    ) -> Result<APIDatum<CancelByClientOidResp>, APIError> {
+        let endpoint = String::from("/api/v1/hf/orders/client-order");
+        self.cancel_order_by_client_oid_raw(endpoint, client_oid)
+            .await
+    }
+
+    /// Cancels an order based on the provided order id (required).
+    pub async fn cancel_order_by_client_oid(
+        &self,
+        client_oid: &str,
+    ) -> Result<APIDatum<CancelByClientOidResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders/client-order");
+        self.cancel_order_by_client_oid_raw(endpoint, client_oid)
+            .await
+    }
+
     /// Cancels an order based on the provided order id (required).
     async fn cancel_order_by_client_oid_raw(
         &self,
@@ -230,6 +220,29 @@ impl Kucoin {
             .unwrap();
         let resp = self.delete(url, Some(headers)).await?.json().await?;
         Ok(resp)
+    }
+
+    /// Cancels all orders in HF mode of a given symbol (optional) or trade type (optional)
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/cancel-all-hf-orders-by-symbol
+    pub async fn cancel_all_orders_hf(
+        &self,
+        symbol: Option<&str>,
+        trade_type: Option<&str>,
+    ) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/hf/orders");
+        self.cancel_all_orders_raw(endpoint, symbol, trade_type)
+            .await
+    }
+
+    /// Cancels all orders of a given symbol (optional) or trade type (optional)
+    pub async fn cancel_all_orders(
+        &self,
+        symbol: Option<&str>,
+        trade_type: Option<&str>,
+    ) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.cancel_all_orders_raw(endpoint, symbol, trade_type)
+            .await
     }
 
     // Cancels all orders of a given symbol (optional) or trade type (optional).
@@ -264,120 +277,27 @@ impl Kucoin {
         Ok(resp)
     }
 
-    // Consider list orders
-    async fn get_orders_raw(
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/get-hf-order-details-by-orderid
+    pub async fn get_order_details_by_order_id_hf(
         &self,
-        endpoint: String,
-        optionals: Option<OrderInfoOptionals<'_>>,
-    ) -> Result<APIDatum<Pagination<OrderInfo>>, APIError> {
-        let url: String;
-        let headers: header::HeaderMap;
-        let mut params: HashMap<String, String> = HashMap::new();
-        if let Some(opts) = optionals {
-            if let Some(o) = opts.status {
-                params.insert("status".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.symbol {
-                params.insert("symbol".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.side {
-                params.insert("side".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.r#type {
-                params.insert("type".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.trade_type {
-                params.insert("tradeType".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.start_at {
-                params.insert("startAt".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.end_at {
-                params.insert("endAt".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.current_page {
-                params.insert("currentPage".to_string(), o.to_string());
-            };
-            if let Some(o) = opts.page_size {
-                params.insert("pageSize".to_string(), o.to_string());
-            };
-        };
-        if !params.is_empty() {
-            let query = format_query(&params);
-            url = format!("{}{}{}", &self.prefix, endpoint, query);
-            headers = self
-                .sign_headers(endpoint, None, Some(query), Method::GET)
-                .unwrap();
-        } else {
-            url = format!("{}{}", &self.prefix, endpoint);
-            headers = self
-                .sign_headers(endpoint, None, None, Method::GET)
-                .unwrap();
-        }
-        let resp = self.get(url, Some(headers)).await?.json().await?;
-        Ok(resp)
+        order_id: &str,
+    ) -> Result<APIDatum<OrderInfo>, APIError> {
+        let endpoint = String::from("/api/v1/hf/orders");
+        self.get_order_details_by_order_id_raw(endpoint, order_id)
+            .await
     }
 
-    async fn get_v1_historical_orders_raw(
+    /// https://www.kucoin.com/docs/rest/spot-trading/orders/get-order-details-by-orderid
+    pub async fn get_order_details_by_order_id(
         &self,
-        endpoint: String,
-        symbol: Option<&str>,
-        start_at: Option<i64>,
-        end_at: Option<i64>,
-        side: Option<&str>,
-        current_page: Option<i32>,
-        page_size: Option<i32>,
-    ) -> Result<APIDatum<Pagination<HistoricalOrder>>, APIError> {
-        let url: String;
-        let headers: header::HeaderMap;
-        let mut params: HashMap<String, String> = HashMap::new();
-        if let Some(o) = current_page {
-            params.insert("current_page".to_string(), o.to_string());
-        };
-        if let Some(o) = page_size {
-            params.insert("page_size".to_string(), o.to_string());
-        };
-        if let Some(o) = symbol {
-            params.insert("symbol".to_string(), o.to_string());
-        };
-        if let Some(o) = start_at {
-            params.insert("start_at".to_string(), o.to_string());
-        };
-        if let Some(o) = end_at {
-            params.insert("end_at".to_string(), o.to_string());
-        };
-        if let Some(o) = side {
-            params.insert("side".to_string(), o.to_string());
-        };
-        if !params.is_empty() {
-            let query = format_query(&params);
-            url = format!("{}{}{}", &self.prefix, endpoint, query);
-            headers = self
-                .sign_headers(endpoint, None, Some(query), Method::GET)
-                .unwrap();
-        } else {
-            url = format!("{}{}", &self.prefix, endpoint);
-            headers = self
-                .sign_headers(endpoint, None, None, Method::GET)
-                .unwrap();
-        }
-        let resp = self.get(url, Some(headers)).await?.json().await?;
-        Ok(resp)
+        order_id: &str,
+    ) -> Result<APIDatum<OrderInfo>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.get_order_details_by_order_id_raw(endpoint, order_id)
+            .await
     }
 
-    async fn get_recent_orders_raw(
-        &self,
-        endpoint: String,
-    ) -> Result<APIData<OrderInfo>, APIError> {
-        let url = format!("{}{}", &self.prefix, endpoint);
-        let headers: header::HeaderMap = self
-            .sign_headers(endpoint, None, None, Method::GET)
-            .unwrap();
-        let resp = self.get(url, Some(headers)).await?.json().await?;
-        Ok(resp)
-    }
-
-    async fn get_order_raw(
+    async fn get_order_details_by_order_id_raw(
         &self,
         endpoint: String,
         order_id: &str,
@@ -389,6 +309,24 @@ impl Kucoin {
             .unwrap();
         let resp = self.get(url, Some(headers)).await?.json().await?;
         Ok(resp)
+    }
+
+    /// https://www.kucoin.com/docs/rest/spot-trading/spot-hf-trade-pro-account/get-hf-transaction-records
+    pub async fn get_fills_hf(
+        &self,
+        optionals: Option<FillsOptionals<'_>>,
+    ) -> Result<APIDatum<Pagination<FillsInfo>>, APIError> {
+        let endpoint = String::from("/api/v1/hf/fills");
+        self.get_fills_raw(endpoint, optionals).await
+    }
+
+    /// https://www.kucoin.com/docs/rest/spot-trading/fills/get-filled-list
+    pub async fn get_fills(
+        &self,
+        optionals: Option<FillsOptionals<'_>>,
+    ) -> Result<APIDatum<Pagination<FillsInfo>>, APIError> {
+        let endpoint = String::from("/api/v1/fills");
+        self.get_fills_raw(endpoint, optionals).await
     }
 
     async fn get_fills_raw(
@@ -444,8 +382,110 @@ impl Kucoin {
         Ok(resp)
     }
 
-    async fn get_recent_fills_raw(&self, endpoint: String) -> Result<APIData<FillsInfo>, APIError> {
-        // let endpoint = String::from("/api/v1/limit/fills");
+    pub async fn get_orders(
+        &self,
+        optionals: Option<OrderInfoOptionals<'_>>,
+    ) -> Result<APIDatum<Pagination<OrderInfo>>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        let url: String;
+        let headers: header::HeaderMap;
+        let mut params: HashMap<String, String> = HashMap::new();
+        if let Some(opts) = optionals {
+            if let Some(o) = opts.status {
+                params.insert("status".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.symbol {
+                params.insert("symbol".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.side {
+                params.insert("side".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.r#type {
+                params.insert("type".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.trade_type {
+                params.insert("tradeType".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.start_at {
+                params.insert("startAt".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.end_at {
+                params.insert("endAt".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.current_page {
+                params.insert("currentPage".to_string(), o.to_string());
+            };
+            if let Some(o) = opts.page_size {
+                params.insert("pageSize".to_string(), o.to_string());
+            };
+        };
+        if !params.is_empty() {
+            let query = format_query(&params);
+            url = format!("{}{}{}", &self.prefix, endpoint, query);
+            headers = self
+                .sign_headers(endpoint, None, Some(query), Method::GET)
+                .unwrap();
+        } else {
+            url = format!("{}{}", &self.prefix, endpoint);
+            headers = self
+                .sign_headers(endpoint, None, None, Method::GET)
+                .unwrap();
+        }
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    /// https://www.kucoin.com/docs/rest/spot-trading/orders/get-order-list
+    pub async fn get_v1_historical_orders(
+        &self,
+        symbol: Option<&str>,
+        start_at: Option<i64>,
+        end_at: Option<i64>,
+        side: Option<&str>,
+        current_page: Option<i32>,
+        page_size: Option<i32>,
+    ) -> Result<APIDatum<Pagination<HistoricalOrder>>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        let url: String;
+        let headers: header::HeaderMap;
+        let mut params: HashMap<String, String> = HashMap::new();
+        if let Some(o) = current_page {
+            params.insert("current_page".to_string(), o.to_string());
+        };
+        if let Some(o) = page_size {
+            params.insert("page_size".to_string(), o.to_string());
+        };
+        if let Some(o) = symbol {
+            params.insert("symbol".to_string(), o.to_string());
+        };
+        if let Some(o) = start_at {
+            params.insert("start_at".to_string(), o.to_string());
+        };
+        if let Some(o) = end_at {
+            params.insert("end_at".to_string(), o.to_string());
+        };
+        if let Some(o) = side {
+            params.insert("side".to_string(), o.to_string());
+        };
+        if !params.is_empty() {
+            let query = format_query(&params);
+            url = format!("{}{}{}", &self.prefix, endpoint, query);
+            headers = self
+                .sign_headers(endpoint, None, Some(query), Method::GET)
+                .unwrap();
+        } else {
+            url = format!("{}{}", &self.prefix, endpoint);
+            headers = self
+                .sign_headers(endpoint, None, None, Method::GET)
+                .unwrap();
+        }
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    /// https://www.kucoin.com/docs/rest/spot-trading/fills/get-recen-filled-list
+    pub async fn get_recent_fills(&self) -> Result<APIData<FillsInfo>, APIError> {
+        let endpoint = String::from("/api/v1/limit/fills");
         let url = format!("{}{}", &self.prefix, endpoint);
         let headers = self
             .sign_headers(endpoint, None, None, Method::GET)
