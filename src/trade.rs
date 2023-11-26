@@ -22,26 +22,8 @@ impl Kucoin {
         optionals: Option<OrderOptionals<'_>>,
     ) -> Result<APIDatum<OrderResp>, APIError> {
         let endpoint = String::from("/api/v1/orders");
-        let url = format!("{}{}", &self.prefix, endpoint);
-        let mut params: HashMap<String, String> = HashMap::new();
-        params.insert(String::from("clientOid"), client_oid.to_string());
-        params.insert(String::from("symbol"), symbol.to_string());
-        params.insert(String::from("side"), side.to_string());
-        params.insert(String::from("price"), price.to_string());
-        params.insert(String::from("size"), size.to_string());
-        if let Some(opt) = optionals {
-            let opts = parse_order(opt);
-            params.extend(opts);
-        };
-        let headers: header::HeaderMap = self
-            .sign_headers(endpoint, Some(&params), None, Method::POST)
-            .unwrap();
-        let resp = self
-            .post(url, Some(headers), Some(params))
-            .await?
-            .json()
-            .await?;
-        Ok(resp)
+        self.post_limit_order_raw(&endpoint, client_oid, symbol, side, price, size, optionals)
+            .await
     }
 
     /// Places a market order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
@@ -59,6 +41,140 @@ impl Kucoin {
         optionals: Option<OrderOptionals<'_>>,
     ) -> Result<APIDatum<OrderResp>, APIError> {
         let endpoint = String::from("/api/v1/orders");
+        self.post_market_order_raw(endpoint, client_oid, symbol, side, size, funds, optionals)
+            .await
+    }
+
+    /// Cancels an order based on the provided order id (required).
+    pub async fn cancel_order(&self, order_id: &str) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.cancel_order_raw(endpoint, order_id).await
+    }
+
+    /// Cancels an order based on the provided order id (required).
+    pub async fn cancel_order_by_client_oid(
+        &self,
+        client_oid: &str,
+    ) -> Result<APIDatum<CancelByClientOidResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders/client-order");
+        self.cancel_order_by_client_oid_raw(endpoint, client_oid)
+            .await
+    }
+
+    // Cancels all orders of a given symbol (optional) or trade type (optional).
+    pub async fn cancel_all_orders(
+        &self,
+        symbol: Option<&str>,
+        trade_type: Option<&str>,
+    ) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.cancel_all_orders_raw(endpoint, symbol, trade_type)
+            .await
+    }
+
+    // Consider list orders
+    pub async fn get_orders(
+        &self,
+        optionals: Option<OrderInfoOptionals<'_>>,
+    ) -> Result<APIDatum<Pagination<OrderInfo>>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.get_orders_raw(endpoint, optionals).await
+    }
+
+    pub async fn get_v1_historical_orders(
+        &self,
+        symbol: Option<&str>,
+        start_at: Option<i64>,
+        end_at: Option<i64>,
+        side: Option<&str>,
+        current_page: Option<i32>,
+        page_size: Option<i32>,
+    ) -> Result<APIDatum<Pagination<HistoricalOrder>>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.get_v1_historical_orders_raw(
+            endpoint,
+            symbol,
+            start_at,
+            end_at,
+            side,
+            current_page,
+            page_size,
+        )
+        .await
+    }
+
+    pub async fn get_recent_orders(&self) -> Result<APIData<OrderInfo>, APIError> {
+        let endpoint = String::from("/api/v1/limit/orders");
+        self.get_recent_orders_raw(endpoint).await
+    }
+
+    pub async fn get_order(&self, order_id: &str) -> Result<APIDatum<OrderInfo>, APIError> {
+        let endpoint = String::from("/api/v1/orders");
+        self.get_order_raw(endpoint, order_id).await
+    }
+
+    pub async fn get_fills(
+        &self,
+        optionals: Option<FillsOptionals<'_>>,
+    ) -> Result<APIDatum<Pagination<FillsInfo>>, APIError> {
+        let endpoint = String::from("/api/v1/fills");
+        self.get_fills_raw(endpoint, optionals).await
+    }
+
+    pub async fn get_recent_fills(&self) -> Result<APIData<FillsInfo>, APIError> {
+        let endpoint = String::from("/api/v1/limit/fills");
+        self.get_recent_fills_raw(endpoint).await
+    }
+
+    /// Places a limit order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
+    /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
+    async fn post_limit_order_raw(
+        &self,
+        endpoint: &str,
+        client_oid: &str,
+        symbol: &str,
+        side: &str,
+        price: &str,
+        size: &str,
+        optionals: Option<OrderOptionals<'_>>,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let mut params: HashMap<String, String> = HashMap::new();
+        params.insert(String::from("clientOid"), client_oid.to_string());
+        params.insert(String::from("symbol"), symbol.to_string());
+        params.insert(String::from("side"), side.to_string());
+        params.insert(String::from("price"), price.to_string());
+        params.insert(String::from("size"), size.to_string());
+        if let Some(opt) = optionals {
+            let opts = parse_order(opt);
+            params.extend(opts);
+        };
+        let headers: header::HeaderMap = self
+            .sign_headers(endpoint.to_string(), Some(&params), None, Method::POST)
+            .unwrap();
+        let resp = self
+            .post(url, Some(headers), Some(params))
+            .await?
+            .json()
+            .await?;
+        Ok(resp)
+    }
+
+    /// Places a market order. Takes required inputs directly and a Some<OrderOptionals> type, or None for
+    /// optional inputs. See OrderOptionals for build pattern usage to simplify generating optional params.
+    ///
+    /// Note that size is the amount in the base currency and funds is the amount in quote currency. Users
+    /// should only use one or the other the order will fail. One of the two is a required parameter.
+    async fn post_market_order_raw(
+        &self,
+        endpoint: String,
+        client_oid: &str,
+        symbol: &str,
+        side: &str,
+        size: Option<f32>,
+        funds: Option<f32>,
+        optionals: Option<OrderOptionals<'_>>,
+    ) -> Result<APIDatum<OrderResp>, APIError> {
         let url = format!("{}{}", &self.prefix, endpoint);
         let mut params: HashMap<String, String> = HashMap::new();
         params.insert(String::from("clientOid"), client_oid.to_string());
@@ -87,8 +203,12 @@ impl Kucoin {
     }
 
     /// Cancels an order based on the provided order id (required).
-    pub async fn cancel_order(&self, order_id: &str) -> Result<APIDatum<CancelResp>, APIError> {
-        let endpoint = format!("/api/v1/orders/{}", order_id);
+    async fn cancel_order_raw(
+        &self,
+        endpoint: String,
+        order_id: &str,
+    ) -> Result<APIDatum<CancelResp>, APIError> {
+        let endpoint = format!("{endpoint}/{order_id}");
         let url = format!("{}{}", &self.prefix, endpoint);
         let headers: header::HeaderMap = self
             .sign_headers(endpoint, None, None, Method::DELETE)
@@ -98,11 +218,12 @@ impl Kucoin {
     }
 
     /// Cancels an order based on the provided order id (required).
-    pub async fn cancel_order_by_client_oid(
+    async fn cancel_order_by_client_oid_raw(
         &self,
+        endpoint: String,
         client_oid: &str,
     ) -> Result<APIDatum<CancelByClientOidResp>, APIError> {
-        let endpoint = format!("/api/v1/order/client-order/{}", client_oid);
+        let endpoint = format!("{endpoint}/{client_oid}");
         let url = format!("{}{}", &self.prefix, endpoint);
         let headers: header::HeaderMap = self
             .sign_headers(endpoint, None, None, Method::DELETE)
@@ -112,12 +233,12 @@ impl Kucoin {
     }
 
     // Cancels all orders of a given symbol (optional) or trade type (optional).
-    pub async fn cancel_all_orders(
+    pub async fn cancel_all_orders_raw(
         &self,
+        endpoint: String,
         symbol: Option<&str>,
         trade_type: Option<&str>,
     ) -> Result<APIDatum<CancelResp>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
         let url: String;
         let headers: header::HeaderMap;
         let mut params: HashMap<String, String> = HashMap::new();
@@ -144,11 +265,11 @@ impl Kucoin {
     }
 
     // Consider list orders
-    pub async fn get_orders(
+    async fn get_orders_raw(
         &self,
+        endpoint: String,
         optionals: Option<OrderInfoOptionals<'_>>,
     ) -> Result<APIDatum<Pagination<OrderInfo>>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
         let url: String;
         let headers: header::HeaderMap;
         let mut params: HashMap<String, String> = HashMap::new();
@@ -197,8 +318,9 @@ impl Kucoin {
         Ok(resp)
     }
 
-    pub async fn get_v1_historical_orders(
+    async fn get_v1_historical_orders_raw(
         &self,
+        endpoint: String,
         symbol: Option<&str>,
         start_at: Option<i64>,
         end_at: Option<i64>,
@@ -206,7 +328,6 @@ impl Kucoin {
         current_page: Option<i32>,
         page_size: Option<i32>,
     ) -> Result<APIDatum<Pagination<HistoricalOrder>>, APIError> {
-        let endpoint = String::from("/api/v1/orders");
         let url: String;
         let headers: header::HeaderMap;
         let mut params: HashMap<String, String> = HashMap::new();
@@ -244,31 +365,37 @@ impl Kucoin {
         Ok(resp)
     }
 
-    pub async fn get_recent_orders(&self) -> Result<APIData<OrderInfo>, APIError> {
-        let endpoint = String::from("/api/v1/limit/orders");
-        let url = format!("{}{}", &self.prefix, endpoint);
-        let headers: header::HeaderMap = self
-            .sign_headers(endpoint, None, None, Method::GET)
-            .unwrap();
-        let resp = self.get(url, Some(headers)).await?.json().await?;
-        Ok(resp)
-    }
-
-    pub async fn get_order(&self, order_id: &str) -> Result<APIDatum<OrderInfo>, APIError> {
-        let endpoint = format!("/api/v1/orders/{}", order_id);
-        let url = format!("{}{}", &self.prefix, endpoint);
-        let headers: header::HeaderMap = self
-            .sign_headers(endpoint, None, None, Method::GET)
-            .unwrap();
-        let resp = self.get(url, Some(headers)).await?.json().await?;
-        Ok(resp)
-    }
-
-    pub async fn get_fills(
+    async fn get_recent_orders_raw(
         &self,
+        endpoint: String,
+    ) -> Result<APIData<OrderInfo>, APIError> {
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let headers: header::HeaderMap = self
+            .sign_headers(endpoint, None, None, Method::GET)
+            .unwrap();
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    async fn get_order_raw(
+        &self,
+        endpoint: String,
+        order_id: &str,
+    ) -> Result<APIDatum<OrderInfo>, APIError> {
+        let endpoint = format!("{endpoint}/{}", order_id);
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let headers: header::HeaderMap = self
+            .sign_headers(endpoint, None, None, Method::GET)
+            .unwrap();
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+
+    async fn get_fills_raw(
+        &self,
+        endpoint: String,
         optionals: Option<FillsOptionals<'_>>,
     ) -> Result<APIDatum<Pagination<FillsInfo>>, APIError> {
-        let endpoint = String::from("/api/v1/fills");
         let url: String;
         let headers: header::HeaderMap;
         let mut params: HashMap<String, String> = HashMap::new();
@@ -317,8 +444,8 @@ impl Kucoin {
         Ok(resp)
     }
 
-    pub async fn get_recent_fills(&self) -> Result<APIData<FillsInfo>, APIError> {
-        let endpoint = String::from("/api/v1/limit/fills");
+    async fn get_recent_fills_raw(&self, endpoint: String) -> Result<APIData<FillsInfo>, APIError> {
+        // let endpoint = String::from("/api/v1/limit/fills");
         let url = format!("{}{}", &self.prefix, endpoint);
         let headers = self
             .sign_headers(endpoint, None, None, Method::GET)
