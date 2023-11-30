@@ -382,6 +382,16 @@ impl Kucoin {
         Ok(resp)
     }
 
+    pub async fn get_recent_orders(&self) -> Result<APIData<OrderInfo>, APIError> {
+        let endpoint = String::from("/api/v1/limit/orders");
+        let url = format!("{}{}", &self.prefix, endpoint);
+        let headers: header::HeaderMap = self
+            .sign_headers(endpoint, None, None, Method::GET)
+            .unwrap();
+        let resp = self.get(url, Some(headers)).await?.json().await?;
+        Ok(resp)
+    }
+    
     pub async fn get_orders(
         &self,
         optionals: Option<OrderInfoOptionals<'_>>,
