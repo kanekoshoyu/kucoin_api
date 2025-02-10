@@ -7,7 +7,7 @@
 [![discussions](https://img.shields.io/github/discussions/kanekoshoyu/kucoin_api)](https://github.com/kanekoshoyu/kucoin_api/discussions)
 [![discord](https://img.shields.io/discord/1153997271294283827)](https://discord.gg/q3j5MYdwnm)   
 > [!IMPORTANT]  
-> this repo is no longer maintained as I want to focus on cross exchange trading library at [exchange-collection](https://github.com/kanekoshoyu/exchange-collection)
+> this repo is no longer maintained; I want to focus on cross exchange trading library at [exchange-collection](https://github.com/kanekoshoyu/exchange-collection)
 
 kucoin_api is an API wrapper for the [Kucoin Cryptocurrency Exchange](https://www.kucoin.com/). This is a derived project from Eric Abrahams's [kucoin_rs](https://github.com/escwdev/kucoin_rs).
 
